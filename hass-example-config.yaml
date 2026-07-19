@@ -1,0 +1,40 @@
+# Example Home Assistant `command_line` sensor configuration for
+# get-power-xcel-meter.py. Add this to your configuration.yaml (or an
+# included sensors file) and adjust paths/values as needed.
+
+command_line:
+  - sensor:
+      command: "python3 /config/get-power-xcel-meter.py --type live"
+      name: "Xcel Meter Power"
+      scan_interval: 30
+      command_timeout: 10
+      unique_id: xcel_meter_power
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+
+  - sensor:
+      command: "python3 /config/get-power-xcel-meter.py --type cumulative"
+      name: "Xcel Meter Consumption"
+      scan_interval: 30
+      command_timeout: 10
+      unique_id: xcel_meter_consumption
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: total_increasing
+      # The meter reports cumulative usage in Wh; convert to kWh here.
+      value_template: "{{ value | multiply(0.001) | round(3) }}"
+
+# Notes:
+# - scan_interval / command_timeout: don't set these too aggressively.
+#   Polling every few seconds hammers the meter's embedded web server
+#   and increases the odds of transient failures. 30s is plenty for
+#   energy monitoring purposes; HA's own statistics engine buckets
+#   everything into 5-minute intervals regardless.
+# - state_class: total_increasing tells HA this value should only
+#   ever go up. If the script ever fails and prints anything other
+#   than a clean number (or a clean non-zero exit with nothing on
+#   stdout), HA's recorder may interpret that as the counter having
+#   reset, which can corrupt your Energy dashboard history. The
+#   script is written to fail loudly on stderr with a non-zero exit
+#   rather than emit garbage to stdout, specifically to avoid this.

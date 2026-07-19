@@ -21,9 +21,19 @@ round-trip, no dependency on Xcel's customer portal being up.
 
 ## Configuration
 
-Set these environment variables (or edit the defaults in the script):
+Configuration values, in order of precedence (highest first):
 
-| Variable | Description | Default |
+1. Real environment variables already set when the script runs
+2. A `KEY=VALUE` config file, located via (in order):
+   - `--config-file /path/to/file` on the command line
+   - `XCEL_CONFIG_FILE` environment variable
+   - default path `/config/xcel_meter.env`
+3. Hardcoded fallback defaults in the script
+
+See `xcel_meter.env.example` for the config file format — copy it,
+fill in your real values, and **do not commit your filled-in copy**.
+
+| Key | Description | Default |
 |---|---|---|
 | `XCEL_METER_HOST` | LAN IP or hostname of your meter | `192.168.1.100` |
 | `XCEL_METER_PORT` | Meter's HTTPS port | `8081` |
@@ -31,36 +41,25 @@ Set these environment variables (or edit the defaults in the script):
 | `XCEL_CLIENT_KEY` | Path to your client private key | `/config/xcel_client_key.pem` |
 | `XCEL_OPENSSL_CONF` | Path to an OpenSSL config enabling the legacy cipher this meter requires | `/config/xcel_client_openssl.cnf` |
 
-**Never commit your `.pem` cert/key files or OpenSSL config to this
-repo or any public location** — they are unique credentials tied to
-your meter and utility account. The included `.gitignore` blocks
-these by extension, but double-check before pushing.
+**Never commit your `.pem` cert/key files or a filled-in config file
+to this repo or any public location** — they are unique credentials
+tied to your meter and utility account. The included `.gitignore`
+blocks these by extension/name, but double-check before pushing.
 
 ## Usage
 
 ```bash
+# Use the default config file location, or XCEL_CONFIG_FILE if set
 python3 get-power-xcel-meter.py --type live
 python3 get-power-xcel-meter.py --type cumulative
+
+# Or point at a specific config file explicitly
+python3 get-power-xcel-meter.py --type live --config-file /path/to/your.env
 ```
 
 ## Home Assistant integration
 
-Example `command_line` sensor config (adjust paths/env as needed):
-
-```yaml
-command_line:
-  - sensor:
-      name: Xcel Meter Consumption
-      command: "python3 /config/get-power-xcel-meter.py --type cumulative"
-      unit_of_measurement: "Wh"
-      state_class: total_increasing
-      scan_interval: 60
-```
-
-Note the `total_increasing` state class — this tells HA's recorder
-the value should only ever go up. If your sensor briefly returns an
-error or an unexpected value, HA may interpret that as a meter reset
-and adjust its long-term statistics accordingly. Make sure your
-command's failure mode is a clean non-zero exit rather than error
-text on stdout, or you may see phantom spikes/drops in your Energy
-dashboard history.
+See `homeassistant-sensor.example.yaml` for a ready-to-adapt
+`command_line` sensor configuration, including notes on scan interval
+and failure-handling that matter specifically for `total_increasing`
+energy sensors.
