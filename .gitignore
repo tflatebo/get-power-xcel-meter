@@ -1,0 +1,9 @@
+# Never commit meter credentials
+*.pem
+*.key
+*.crt
+xcel_client_openssl.cnf
+
+# Local env files
+.env
+xcel_meter.env
